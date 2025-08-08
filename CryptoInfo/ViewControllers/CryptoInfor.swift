@@ -7,12 +7,12 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class CryptoInfoViewController: UITableViewController {
     let url = URL(string: "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd")!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        fetchCryptoData()
+       fetchCryptoData()
     }
     
     func fetchCryptoData() {
@@ -44,3 +44,4 @@ class ViewController: UIViewController {
         task.resume()
     }
 }
+
