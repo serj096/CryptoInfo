@@ -1,3 +1,11 @@
+//
+//  Crypto.swift
+//  CryptoInfo
+//
+//  Created by serj on 04.08.2025.
+//
+
+
 struct Crypto: Decodable {
     let id: String
     let symbol: String
