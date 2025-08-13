@@ -10,9 +10,11 @@ import UIKit
 class CryptoInfoViewController: UITableViewController {
     let url = URL(string: "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd")!
     
+    var cryptos: [Crypto] = [] // сюда будем сохранять данные
+
     override func viewDidLoad() {
         super.viewDidLoad()
-       fetchCryptoData()
+        fetchCryptoData()
     }
     
     func fetchCryptoData() {
@@ -30,12 +32,8 @@ class CryptoInfoViewController: UITableViewController {
             do {
                 let cryptos = try JSONDecoder().decode([Crypto].self, from: data)
                 DispatchQueue.main.async {
-                    for crypto in cryptos.prefix(5) {
-                        print("💰 \(crypto.name) (\(crypto.symbol.uppercased()))")
-                        print("   Цена: $\(crypto.current_price), Капитализация: $\(crypto.market_cap)")
-                        print("   Изменение за 24ч: \(crypto.price_change_percentage_24h)%")
-                        print("   Лого: \(crypto.image)\n")
-                    }
+                    self.cryptos = cryptos.prefix(5).map { $0 } // сохраняем первые 5
+                    self.tableView.reloadData() // перерисовываем таблицу
                 }
             } catch {
                 print("Ошибка парсинга: \(error)")
@@ -43,5 +41,16 @@ class CryptoInfoViewController: UITableViewController {
         }
         task.resume()
     }
+    
+    // MARK: - UITableView DataSource
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return cryptos.count
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "CryptoCell", for: indexPath) as! CryptoInfoTableViewCell
+        let crypto = cryptos[indexPath.row]
+        cell.configure(with: crypto) // сюда передаем данные
+        return cell
+    }
 }
-
