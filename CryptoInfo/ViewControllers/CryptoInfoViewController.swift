@@ -7,7 +7,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class CryptoInfoViewController: UIViewController {
     let url = URL(string: "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd")!
     
     override func viewDidLoad() {
