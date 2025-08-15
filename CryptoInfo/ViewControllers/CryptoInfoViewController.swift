@@ -10,7 +10,7 @@ import UIKit
 class CryptoInfoViewController: UITableViewController {
     let url = URL(string: "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd")!
     
-    var cryptos: [Crypto] = [] // сюда будем сохранять данные
+    var cryptos: [Crypto] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,8 +32,8 @@ class CryptoInfoViewController: UITableViewController {
             do {
                 let cryptos = try JSONDecoder().decode([Crypto].self, from: data)
                 DispatchQueue.main.async {
-                    self.cryptos = cryptos.prefix(5).map { $0 } // сохраняем первые 5
-                    self.tableView.reloadData() // перерисовываем таблицу
+                    self.cryptos = Array(cryptos.prefix(5)) // максимум 5 монет, но может быть меньше
+                    self.tableView.reloadData()
                 }
             } catch {
                 print("Ошибка парсинга: \(error)")
@@ -48,9 +48,27 @@ class CryptoInfoViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CryptoCell", for: indexPath) as! CryptoInfoTableViewCell
-        let crypto = cryptos[indexPath.row]
-        cell.configure(with: crypto) // сюда передаем данные
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "CryptoCell", for: indexPath) as? CryptoInfoTableViewCell else {
+            return UITableViewCell()
+        }
+        
+        if let crypto = cryptos[safeIndex: indexPath.row] {
+            cell.configure(with: crypto)
+        } else {
+            cell.configurePlaceholder()
+        }
+        
         return cell
     }
 }
+
+extension Array {
+    public subscript(safeIndex index: Int) -> Element? {
+        guard index >= 0, index < endIndex else {
+            return nil
+        }
+
+        return self[index]
+    }
+}
+

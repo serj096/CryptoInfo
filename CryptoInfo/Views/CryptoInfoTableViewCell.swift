@@ -70,4 +70,13 @@ class CryptoInfoTableViewCell: UITableViewCell {
             }
         }
     }
+    func configurePlaceholder() {
+        nameLabel.text = "—"
+        shortNameLabel.text = ""
+        priceLabel.text = "—"
+        capitalLaber.text = ""
+        changeLabel.text = ""
+        cryptoImageCell.image = UIImage(named: "coin")
+    }
+
 }
