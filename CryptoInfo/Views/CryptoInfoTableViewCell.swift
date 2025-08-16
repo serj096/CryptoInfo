@@ -27,64 +27,67 @@ class CryptoInfoTableViewCell: UITableViewCell {
     @IBOutlet weak var capitalLaber: UILabel!
     @IBOutlet weak var changeLabel: UILabel!
 
+    private var currentImageURL: String?
+    
     // MARK: - Lifecycle
     override func awakeFromNib() {
         super.awakeFromNib()
         setupUI()
     }
-
     // MARK: - UI Setup
-    private func setupUI() {
-        cryptoImageCell.layer.cornerRadius = cryptoImageCell.frame.size.width / 2
-        cryptoImageCell.clipsToBounds = true
-        contentView.layer.cornerRadius = 15
-        backgroundColor = .clear
-    }
-
-    // MARK: - Configure Cell
-    func configure(with crypto: Crypto) {
-        // Проверяем IBOutlet
-        guard cryptoImageCell != nil else {
-            print("cryptoImageCell is nil! Проверьте IBOutlet в Storyboard/XIB.")
-            return
+        private func setupUI() {
+            cryptoImageCell.clipsToBounds = true
+            contentView.layer.cornerRadius = 15
+            backgroundColor = .clear
         }
 
-        // Настраиваем текстовые поля
-        shortNameLabel.text = crypto.symbol.uppercased()
-        nameLabel.text = crypto.name
-        priceLabel.text = "$" + String(format: "%.2f", crypto.current_price)
-        capitalLaber.text = "$" + String(format: "%.0f", crypto.market_cap)
-        changeLabel.text = String(format: "%.2f%%", crypto.price_change_percentage_24h)
+        // MARK: - Configure Cell
+        func configure(with crypto: Crypto) {
+            // Сохраняем текущий URL для проверки при загрузке картинки
+            currentImageURL = crypto.image
+            
+            // Настраиваем текстовые поля
+            shortNameLabel.text = crypto.symbol.uppercased()
+            nameLabel.text = crypto.name
+            priceLabel.text = "$" + String(format: "%.2f", crypto.current_price)
+            capitalLaber.text = "$" + String(format: "%.0f", crypto.market_cap)
+            changeLabel.text = String(format: "%.2f%%", crypto.price_change_percentage_24h)
 
-        // Ставим плейсхолдер сразу
-        cryptoImageCell.image = UIImage(named: "coin")
+            // Плейсхолдер
+            cryptoImageCell.image = UIImage(named: "coin")
 
-        // Проверяем валидный URL
-        if let url = URL(string: crypto.image) {
+            guard let url = URL(string: crypto.image) else { return }
+
             // Проверяем кеш
             if let cachedImage = imageCache.object(forKey: url.absoluteString as NSString) {
-                self.cryptoImageCell.image = cachedImage
-            } else {
-                
-                URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-                    guard let self = self else { return }
-                    if let data = data, let image = UIImage(data: data) {
-                        imageCache.setObject(image, forKey: url.absoluteString as NSString)
-                        DispatchQueue.main.async {
-                            self.cryptoImageCell.image = image
-                        }
-                    }
-                }.resume()
+                cryptoImageCell.image = cachedImage
+                return
             }
-        }
-    }
-    func configurePlaceholder() {
-        nameLabel.text = "—"
-        shortNameLabel.text = ""
-        priceLabel.text = "—"
-        capitalLaber.text = ""
-        changeLabel.text = ""
-        cryptoImageCell.image = UIImage(named: "coin")
-    }
 
+            // Загружаем изображение асинхронно
+            URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+                guard let self = self else { return }
+                guard let data = data, let image = UIImage(data: data) else { return }
+
+                // Сохраняем в кеш
+                imageCache.setObject(image, forKey: url.absoluteString as NSString)
+
+                DispatchQueue.main.async {
+                    // Проверяем, что URL совпадает с текущей моделью ячейки
+                    if self.currentImageURL == url.absoluteString {
+                        self.cryptoImageCell.image = image
+                    }
+                }
+            }.resume()
+        }
+
+        func configurePlaceholder() {
+            nameLabel.text = "—"
+            shortNameLabel.text = ""
+            priceLabel.text = "—"
+            capitalLaber.text = ""
+            changeLabel.text = ""
+            cryptoImageCell.image = UIImage(named: "coin")
+            currentImageURL = nil
+        }
 }
