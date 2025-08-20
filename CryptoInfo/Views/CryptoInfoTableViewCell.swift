@@ -14,80 +14,99 @@
 //
 import UIKit
 
-// Глобальный кеш для изображений
 let imageCache = NSCache<NSString, UIImage>()
 
-class CryptoInfoTableViewCell: UITableViewCell {
+final class CryptoInfoTableViewCell: UITableViewCell {
 
-    // MARK: - IBOutlets
-    @IBOutlet weak var cryptoImageCell: UIImageView!
-    @IBOutlet weak var nameLabel: UILabel!
-    @IBOutlet weak var shortNameLabel: UILabel!
-    @IBOutlet weak var priceLabel: UILabel!
-    @IBOutlet weak var capitalLaber: UILabel!
-    @IBOutlet weak var changeLabel: UILabel!
-
+    static let identifier = "CryptoInfoTableViewCell"
     private var currentImageURL: String?
-    
-    // MARK: - Lifecycle
-    override func awakeFromNib() {
-        super.awakeFromNib()
+
+    private let cryptoImageCell: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.clipsToBounds = true
+        return iv
+    }()
+
+    private let nameLabel = UILabel()
+    private let shortNameLabel = UILabel()
+    private let priceLabel = UILabel()
+    private let capitalLaber = UILabel()
+    private let changeLabel = UILabel()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
-    // MARK: - UI Setup
-        private func setupUI() {
-            cryptoImageCell.clipsToBounds = true
-            contentView.layer.cornerRadius = 15
-            backgroundColor = .clear
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        cryptoImageCell.layer.cornerRadius = cryptoImageCell.frame.width / 2
+    }
+
+    private func setupUI() {
+        contentView.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        contentView.layer.cornerRadius = 15
+        contentView.clipsToBounds = true
+
+        [cryptoImageCell, nameLabel, shortNameLabel, priceLabel, capitalLaber, changeLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview($0)
         }
 
-        // MARK: - Configure Cell
-        func configure(with crypto: Crypto) {
-            // Сохраняем текущий URL для проверки при загрузке картинки
-            currentImageURL = crypto.image
-            
-            // Настраиваем текстовые поля
-            shortNameLabel.text = crypto.symbol.uppercased()
-            nameLabel.text = crypto.name
-            priceLabel.text = "$" + String(format: "%.2f", crypto.current_price)
-            capitalLaber.text = "$" + String(format: "%.0f", crypto.market_cap)
-            changeLabel.text = String(format: "%.2f%%", crypto.price_change_percentage_24h)
+        NSLayoutConstraint.activate([
+            cryptoImageCell.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            cryptoImageCell.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            cryptoImageCell.widthAnchor.constraint(equalToConstant: 60),
+            cryptoImageCell.heightAnchor.constraint(equalToConstant: 60),
 
-            // Плейсхолдер
-            cryptoImageCell.image = UIImage(named: "coin")
+            nameLabel.leadingAnchor.constraint(equalTo: cryptoImageCell.trailingAnchor, constant: 10),
+            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
 
-            guard let url = URL(string: crypto.image) else { return }
+            shortNameLabel.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 5),
+            shortNameLabel.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
 
-            // Проверяем кеш
-            if let cachedImage = imageCache.object(forKey: url.absoluteString as NSString) {
-                cryptoImageCell.image = cachedImage
-                return
-            }
+            priceLabel.leadingAnchor.constraint(equalTo: cryptoImageCell.trailingAnchor, constant: 10),
+            priceLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
 
-            // Загружаем изображение асинхронно
-            URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-                guard let self = self else { return }
-                guard let data = data, let image = UIImage(data: data) else { return }
+            capitalLaber.leadingAnchor.constraint(equalTo: priceLabel.trailingAnchor, constant: 5),
+            capitalLaber.centerYAnchor.constraint(equalTo: priceLabel.centerYAnchor),
 
-                // Сохраняем в кеш
-                imageCache.setObject(image, forKey: url.absoluteString as NSString)
+            changeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            changeLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+        ])
+    }
 
-                DispatchQueue.main.async {
-                    // Проверяем, что URL совпадает с текущей моделью ячейки
-                    if self.currentImageURL == url.absoluteString {
-                        self.cryptoImageCell.image = image
-                    }
+    func configure(with crypto: Crypto) {
+        currentImageURL = crypto.image
+
+        nameLabel.text = crypto.name
+        shortNameLabel.text = crypto.symbol.uppercased()
+        priceLabel.text = "$" + String(format: "%.2f", crypto.current_price)
+        capitalLaber.text = "$" + String(format: "%.0f", crypto.market_cap)
+        changeLabel.text = String(format: "%.2f%%", crypto.price_change_percentage_24h)
+
+        cryptoImageCell.image = UIImage(named: "coin")
+
+        guard let url = URL(string: crypto.image) else { return }
+
+        if let cachedImage = imageCache.object(forKey: url.absoluteString as NSString) {
+            cryptoImageCell.image = cachedImage
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let self = self, let data = data, let image = UIImage(data: data) else { return }
+            imageCache.setObject(image, forKey: url.absoluteString as NSString)
+            DispatchQueue.main.async {
+                if self.currentImageURL == url.absoluteString {
+                    self.cryptoImageCell.image = image
                 }
-            }.resume()
-        }
-
-        func configurePlaceholder() {
-            nameLabel.text = "—"
-            shortNameLabel.text = ""
-            priceLabel.text = "—"
-            capitalLaber.text = ""
-            changeLabel.text = ""
-            cryptoImageCell.image = UIImage(named: "coin")
-            currentImageURL = nil
-        }
+            }
+        }.resume()
+    }
 }
