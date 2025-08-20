@@ -9,7 +9,6 @@ import UIKit
 
 final class CryptoInfoViewController: UIViewController {
 
-    private let url = URL(string: "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd")!
     private var cryptos: [Crypto] = []
 
     private let tableView: UITableView = {
@@ -42,27 +41,17 @@ final class CryptoInfoViewController: UIViewController {
     }
 
     private func fetchCryptoData() {
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
-            guard let self = self else { return }
-            if let error = error {
-                print("Ошибка запроса: \(error)")
-                return
-            }
-            guard let data = data else {
-                print("Нет данных")
-                return
-            }
-
-            do {
-                let cryptos = try JSONDecoder().decode([Crypto].self, from: data)
-                DispatchQueue.main.async {
-                    self.cryptos = Array(cryptos.prefix(5))
-                    self.tableView.reloadData()
+        NetworkManager.shared.fetchCryptos { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let cryptos):
+                    self?.cryptos = Array(cryptos.prefix(5))
+                    self?.tableView.reloadData()
+                case .failure(let error):
+                    print("Ошибка загрузки: \(error)")
                 }
-            } catch {
-                print("Ошибка парсинга: \(error)")
             }
-        }.resume()
+        }
     }
 }
 
@@ -73,8 +62,10 @@ extension CryptoInfoViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: CryptoInfoTableViewCell.identifier, for: indexPath) as? CryptoInfoTableViewCell else {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: CryptoInfoTableViewCell.identifier,
+            for: indexPath
+        ) as? CryptoInfoTableViewCell else {
             return UITableViewCell()
         }
 
