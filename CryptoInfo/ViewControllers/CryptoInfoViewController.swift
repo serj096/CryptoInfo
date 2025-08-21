@@ -7,14 +7,14 @@
 
 import UIKit
 
-final class CryptoInfoViewController: UIViewController {
+final class CryptoViewController: UIViewController {
 
     private var cryptos: [Crypto] = []
 
     private let tableView: UITableView = {
         let tv = UITableView()
         tv.translatesAutoresizingMaskIntoConstraints = false
-        tv.register(CryptoInfoTableViewCell.self, forCellReuseIdentifier: CryptoInfoTableViewCell.identifier)
+        tv.register(CryptoTableViewCell.self, forCellReuseIdentifier: CryptoTableViewCell.identifier)
         tv.rowHeight = 100
         return tv
     }()
@@ -56,16 +56,16 @@ final class CryptoInfoViewController: UIViewController {
 }
 
 // MARK: - UITableViewDataSource & Delegate
-extension CryptoInfoViewController: UITableViewDataSource, UITableViewDelegate {
+extension CryptoViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return cryptos.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: CryptoInfoTableViewCell.identifier,
+            withIdentifier: CryptoTableViewCell.identifier,
             for: indexPath
-        ) as? CryptoInfoTableViewCell else {
+        ) as? CryptoTableViewCell else {
             return UITableViewCell()
         }
 

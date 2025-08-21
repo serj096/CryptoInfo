@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import Alamofire
 
 final class NetworkManager {
     static let shared = NetworkManager()
@@ -14,31 +14,30 @@ final class NetworkManager {
 
     private let baseURL = "https://api.coingecko.com/api/v3"
 
-    func fetchCryptos(completion: @escaping (Result<[Crypto], Error>) -> Void) {
+    func fetchCryptos(completion: @escaping (Result<[Crypto], AFError>) -> Void) {
         let endpoint = "\(baseURL)/coins/markets?vs_currency=usd"
 
-        guard let url = URL(string: endpoint) else {
-            completion(.failure(NSError(domain: "Invalid URL", code: -1)))
-            return
-        }
+        AF.request(endpoint)
+            .validate()
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
+                            completion(.failure(AFError.responseSerializationFailed(reason: .inputDataNilOrZeroLength)))
+                            return
+                        }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
+                        let cryptos = jsonArray.map { Crypto(json: $0) }
+                        completion(.success(cryptos))
 
-            guard let data = data else {
-                completion(.failure(NSError(domain: "No data", code: -1)))
-                return
-            }
+                    } catch {
+                        completion(.failure(AFError.responseSerializationFailed(reason: .jsonSerializationFailed(error: error))))
+                    }
 
-            do {
-                let cryptos = try JSONDecoder().decode([Crypto].self, from: data)
-                completion(.success(cryptos))
-            } catch {
-                completion(.failure(error))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
             }
-        }.resume()
     }
 }
